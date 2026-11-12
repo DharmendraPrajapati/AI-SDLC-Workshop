@@ -1,0 +1,19 @@
+diff --git a/backend/src/InvoiceApp.Domain/DiscountCalculator.cs b/backend/src/InvoiceApp.Domain/DiscountCalculator.cs
+--- a/backend/src/InvoiceApp.Domain/DiscountCalculator.cs
++++ b/backend/src/InvoiceApp.Domain/DiscountCalculator.cs
+@@ -18,12 +18,12 @@ public class DiscountCalculator
+ 
+     public decimal CombinedDiscount(int quantity, int yearsAsCustomer, string? customerType)
+     {
+-        var discount = QuantityDiscount(quantity) + LoyaltyDiscount(yearsAsCustomer);
++        var combinedDiscount = QuantityDiscount(quantity) + LoyaltyDiscount(yearsAsCustomer);
+ 
+         if (customerType == "Nonprofit")
+         {
+-            discount += 0.05m;
++            combinedDiscount += 0.05m;
+         }
+ 
+-        return discount;
++        return combinedDiscount;
+     }

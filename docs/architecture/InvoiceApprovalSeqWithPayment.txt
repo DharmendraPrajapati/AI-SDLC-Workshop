@@ -1,0 +1,68 @@
+sequenceDiagram
+    participant U as User app.js
+    participant UI as Browser UI app.js
+    participant MW as SessionAuthMiddleware.cs
+    participant IC as InvoicesController.cs
+    participant AC as ApprovalsController.cs
+    participant Role as RequireRoleAttribute.cs
+    participant S as ApprovalService.cs
+    participant R as IInvoiceRepository and InMemoryInvoiceRepository.cs
+    participant DB as Database NOT IMPLEMENTED
+    participant PX as PayEx NOT IMPLEMENTED
+
+    U->>UI: Create invoice source app.js new-invoice-form
+    UI->>MW: POST invoices source app.js api and InvoicesController.Create
+    MW->>IC: Authenticated request source SessionAuthMiddleware.InvokeAsync and Program.cs MapControllers
+    IC->>R: Add invoice source InvoicesController.Create and IInvoiceRepository.Add
+    R->>DB: ASSUMED database write source InMemoryInvoiceRepository.Add and Program.cs registration
+    DB-->>R: ASSUMED database response source IInvoiceRepository.Add contract
+    R-->>IC: Return invoice source InvoicesController.Create
+    IC-->>UI: Created response source InvoicesController.Create
+
+    U->>UI: Submit draft source app.js renderInvoices
+    UI->>MW: POST submit source app.js api and InvoicesController.Submit
+    MW->>IC: Authenticated request source SessionAuthMiddleware.InvokeAsync and Program.cs MapControllers
+    IC->>S: Submit invoice source InvoicesController.Submit
+    S->>R: Find invoice source ApprovalService.Find and IInvoiceRepository.GetById
+    R->>DB: ASSUMED database read source InMemoryInvoiceRepository.GetById
+    DB-->>R: ASSUMED database result source IInvoiceRepository.GetById contract
+    R-->>S: Return invoice source ApprovalService.Find
+    S->>R: Update PendingApproval source ApprovalService.Submit and IInvoiceRepository.Update
+    R->>DB: ASSUMED database update source InMemoryInvoiceRepository.Update
+    S-->>IC: Return pending invoice source ApprovalService.Submit
+    IC-->>UI: Return invoice source InvoicesController.Submit
+
+    alt Approve
+        U->>UI: Approve invoice source app.js renderPending
+        UI->>MW: POST approve source app.js api and ApprovalsController.Approve
+        MW->>AC: Authenticated request source SessionAuthMiddleware.InvokeAsync and Program.cs MapControllers
+        AC->>Role: Check role source ApprovalsController RequireRole
+        Role-->>AC: Allow approver or admin source RequireRoleAttribute.OnActionExecuting
+        AC->>S: Approve with username source ApprovalsController.Approve
+        S->>R: Find invoice source ApprovalService.Find and IInvoiceRepository.GetById
+        R->>DB: ASSUMED database read source InMemoryInvoiceRepository.GetById
+        DB-->>R: ASSUMED database result source IInvoiceRepository.GetById contract
+        R-->>S: Return invoice source ApprovalService.Find
+        S->>R: Update Approved and decision details source ApprovalService.Approve and IInvoiceRepository.Update
+        R->>DB: ASSUMED database update source InMemoryInvoiceRepository.Update
+        S-->>AC: Return approved invoice source ApprovalService.Approve
+        AC->>PX: ASSUMED PayEx request user-requested target, no code call, anchor ApprovalsController.Approve
+        PX-->>AC: ASSUMED PayEx response user-requested target, no code contract exists
+        AC-->>UI: Return approval response source ApprovalsController.Approve
+    else Reject
+        U->>UI: Enter reason and reject source app.js renderPending
+        UI->>MW: POST reject source app.js api and ApprovalsController.Reject
+        MW->>AC: Authenticated request source SessionAuthMiddleware.InvokeAsync and Program.cs MapControllers
+        AC->>Role: Check role source ApprovalsController RequireRole
+        Role-->>AC: Allow approver or admin source RequireRoleAttribute.OnActionExecuting
+        AC->>S: Reject with username and reason source ApprovalsController.Reject
+        S->>R: Find invoice source ApprovalService.Find and IInvoiceRepository.GetById
+        R->>DB: ASSUMED database read source InMemoryInvoiceRepository.GetById
+        DB-->>R: ASSUMED database result source IInvoiceRepository.GetById contract
+        R-->>S: Return invoice source ApprovalService.Find
+        S->>R: Update Rejected and decision details source ApprovalService.Reject and IInvoiceRepository.Update
+        R->>DB: ASSUMED database update source InMemoryInvoiceRepository.Update
+        S-->>AC: Return rejected invoice source ApprovalService.Reject
+        AC-->>UI: Return rejection response source ApprovalsController.Reject
+    end
+    UI-->>U: Refresh invoices source app.js decide and refresh

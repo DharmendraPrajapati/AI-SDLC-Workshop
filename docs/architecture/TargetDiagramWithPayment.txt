@@ -1,0 +1,15 @@
+C4Container
+Person(user, "Invoice user - inferred from UI event handlers [backend/src/InvoiceApp.Api/wwwroot/app.js]")
+System_Boundary(app, "Invoice approval app [backend/src/InvoiceApp.Api/Program.cs]") {
+    Container(ui, "Browser UI", "JavaScript", "Existing invoice and approval handlers [backend/src/InvoiceApp.Api/wwwroot/app.js]")
+    Container(api, "ASP.NET Core API", "ASP.NET Core", "Existing host and controllers [backend/src/InvoiceApp.Api/Program.cs; backend/src/InvoiceApp.Api/Controllers]; approval rules [backend/src/InvoiceApp.Domain/ApprovalService.cs]")
+    Container(repo, "Database-backed repository NOT IMPLEMENTED", "Target addition", "Current abstraction and in-memory implementation [backend/src/InvoiceApp.Domain/IInvoiceRepository.cs; backend/src/InvoiceApp.Api/InMemoryInvoiceRepository.cs]; current registration [backend/src/InvoiceApp.Api/Program.cs]")
+}
+ContainerDb(db, "Database NOT IMPLEMENTED", "Target addition", "No database registration is present [backend/src/InvoiceApp.Api/Program.cs]")
+System_Ext(payex, "PayEx NOT IMPLEMENTED", "Target addition", "No PayEx integration is present in the approval flow [backend/src/InvoiceApp.Domain/ApprovalService.cs; backend/src/InvoiceApp.Api/Controllers/ApprovalsController.cs]")
+Rel(user, ui, "Uses UI handlers [backend/src/InvoiceApp.Api/wwwroot/app.js]")
+Rel(ui, api, "Fetches API requests [backend/src/InvoiceApp.Api/wwwroot/app.js: api]")
+Rel(api, ui, "Serves static files [backend/src/InvoiceApp.Api/Program.cs: UseDefaultFiles, UseStaticFiles]")
+Rel(api, repo, "ASSUMED target repository wiring; current DI registers in-memory adapter [backend/src/InvoiceApp.Api/Program.cs; backend/src/InvoiceApp.Domain/IInvoiceRepository.cs]")
+Rel(repo, db, "ASSUMED target persistence operations based on repository contract [backend/src/InvoiceApp.Domain/IInvoiceRepository.cs]")
+Rel(api, payex, "ASSUMED target payment integration; no current call exists [backend/src/InvoiceApp.Domain/ApprovalService.cs]")

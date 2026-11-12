@@ -1,0 +1,14 @@
+C4Container
+Person(user, "Invoice user - inferred from UI event handlers [backend/src/InvoiceApp.Api/wwwroot/app.js]")
+System_Boundary(app, "Invoice approval app [backend/src/InvoiceApp.Api/Program.cs]") {
+    Container(ui, "Browser UI", "JavaScript", "Invoice and approval handlers [backend/src/InvoiceApp.Api/wwwroot/app.js]")
+    Container(api, "ASP.NET Core API", "ASP.NET Core", "Host, middleware and DI [backend/src/InvoiceApp.Api/Program.cs]; controllers [backend/src/InvoiceApp.Api/Controllers/InvoicesController.cs, backend/src/InvoiceApp.Api/Controllers/ApprovalsController.cs, backend/src/InvoiceApp.Api/Controllers/AuthController.cs]; approval rules [backend/src/InvoiceApp.Domain/ApprovalService.cs]")
+}
+Container(sessions, "In-memory session store", "ConcurrentDictionary", "Token-to-session storage [backend/src/InvoiceApp.Api/Auth/SessionStore.cs]")
+Container(repo, "In-memory invoice repository", "List<Invoice>", "Seeded in-memory invoice data and repository operations [backend/src/InvoiceApp.Api/InMemoryInvoiceRepository.cs]")
+Rel(user, ui, "Uses UI handlers [backend/src/InvoiceApp.Api/wwwroot/app.js]")
+Rel(ui, api, "Fetches API requests [backend/src/InvoiceApp.Api/wwwroot/app.js: api]")
+Rel(api, ui, "Serves static files [backend/src/InvoiceApp.Api/Program.cs: UseDefaultFiles, UseStaticFiles]")
+Rel(api, sessions, "Creates and validates sessions [backend/src/InvoiceApp.Api/Controllers/AuthController.cs: Login; backend/src/InvoiceApp.Api/Auth/SessionAuthMiddleware.cs: InvokeAsync]")
+Rel(api, repo, "Invoice controller operations [backend/src/InvoiceApp.Api/Controllers/InvoicesController.cs; backend/src/InvoiceApp.Api/Program.cs]")
+Rel(api, repo, "Approval service reads and updates invoices [backend/src/InvoiceApp.Domain/ApprovalService.cs; backend/src/InvoiceApp.Api/Program.cs]")

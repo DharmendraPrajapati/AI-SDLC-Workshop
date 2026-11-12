@@ -1,0 +1,68 @@
+sequenceDiagram
+    participant U as User inferred from app.js handlers
+    participant UI as Browser UI app.js
+    participant MW as SessionAuthMiddleware.cs
+    participant Auth as AuthController.cs
+    participant SS as SessionStore.cs
+    participant Inv as InvoicesController.cs
+    participant Appr as ApprovalsController.cs
+    participant S as ApprovalService.cs
+    participant Repo as InMemoryInvoiceRepository.cs
+
+    U->>UI: Submit login form [app.js login handler]
+    UI->>MW: POST /api/auth/login [app.js api and AuthController.Login]
+    MW->>Auth: Skip session requirement for login [SessionAuthMiddleware.InvokeAsync]
+    Auth->>SS: Create session and token [AuthController.Login and SessionStore.Create]
+    SS-->>Auth: Return token [SessionStore.Create]
+    Auth-->>UI: Return login response [AuthController.Login]
+    UI-->>U: Store session and render app [app.js login handler and render]
+
+    U->>UI: Create invoice [app.js new-invoice-form handler]
+    UI->>MW: POST /api/invoices [app.js api and InvoicesController.Create]
+    MW->>SS: Validate bearer token [SessionAuthMiddleware.InvokeAsync and SessionStore.Get]
+    SS-->>MW: Return session [SessionStore.Get]
+    MW->>Inv: Continue authenticated request [SessionAuthMiddleware.InvokeAsync and Program.cs MapControllers]
+    Inv->>Repo: Add invoice [InvoicesController.Create and IInvoiceRepository.Add]
+    Repo-->>Inv: Return invoice [InMemoryInvoiceRepository.Add]
+    Inv-->>UI: Return created invoice [InvoicesController.Create]
+
+    U->>UI: Submit draft for approval [app.js renderInvoices handler]
+    UI->>MW: POST /api/invoices/{id}/submit [app.js api and InvoicesController.Submit]
+    MW->>SS: Validate bearer token [SessionAuthMiddleware.InvokeAsync and SessionStore.Get]
+    SS-->>MW: Return session [SessionStore.Get]
+    MW->>Inv: Continue authenticated request [SessionAuthMiddleware.InvokeAsync and Program.cs MapControllers]
+    Inv->>S: Submit invoice [InvoicesController.Submit and ApprovalService.Submit]
+    S->>Repo: Find invoice [ApprovalService.Find and IInvoiceRepository.GetById]
+    Repo-->>S: Return invoice [InMemoryInvoiceRepository.GetById]
+    S->>Repo: Update status to PendingApproval [ApprovalService.Submit and IInvoiceRepository.Update]
+    Repo-->>S: Complete update [InMemoryInvoiceRepository.Update]
+    S-->>Inv: Return pending invoice [ApprovalService.Submit]
+    Inv-->>UI: Return invoice [InvoicesController.Submit]
+
+    alt Approve
+        U->>UI: Select Approve [app.js renderPending approve handler]
+        UI->>MW: POST /api/approvals/{id}/approve [app.js decide and ApprovalsController.Approve]
+        MW->>SS: Validate bearer token [SessionAuthMiddleware.InvokeAsync and SessionStore.Get]
+        SS-->>MW: Return session [SessionStore.Get]
+        MW->>Appr: Continue request to role-protected action [SessionAuthMiddleware.InvokeAsync, Program.cs MapControllers, ApprovalsController RequireRole]
+        Appr->>S: Approve with session username [ApprovalsController.Approve]
+        S->>Repo: Find invoice [ApprovalService.Find and IInvoiceRepository.GetById]
+        Repo-->>S: Return invoice [InMemoryInvoiceRepository.GetById]
+        S->>Repo: Update Approved status and decision metadata [ApprovalService.Approve and IInvoiceRepository.Update]
+        Repo-->>S: Complete update [InMemoryInvoiceRepository.Update]
+        S-->>Appr: Return approved invoice [ApprovalService.Approve]
+        Appr-->>UI: Return approval response [ApprovalsController.Approve]
+    else Reject
+        U->>UI: Enter reason and select Reject [app.js renderPending reject handler]
+        UI->>MW: POST /api/approvals/{id}/reject with reason [app.js decide and ApprovalsController.Reject]
+        MW->>SS: Validate bearer token [SessionAuthMiddleware.InvokeAsync and SessionStore.Get]
+        SS-->>MW: Return session [SessionStore.Get]
+        MW->>Appr: Continue request to role-protected action [SessionAuthMiddleware.InvokeAsync, Program.cs MapControllers, ApprovalsController RequireRole]
+        Appr->>S: Reject with username and reason [ApprovalsController.Reject]
+        S->>Repo: Find invoice after reason validation [ApprovalService.Reject and ApprovalService.Find]
+        Repo-->>S: Return invoice [InMemoryInvoiceRepository.GetById]
+        S->>Repo: Update Rejected status and decision metadata [ApprovalService.Reject and IInvoiceRepository.Update]
+        Repo-->>S: Complete update [InMemoryInvoiceRepository.Update]
+        S-->>Appr: Return rejected invoice [ApprovalService.Reject]
+        Appr-->>UI: Return rejection response [ApprovalsController.Reject]
+    end

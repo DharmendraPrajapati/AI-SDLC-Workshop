@@ -1,0 +1,8 @@
+diff --git a/backend/src/InvoiceApp.Api/Controllers/InvoicesController.cs b/backend/src/InvoiceApp.Api/Controllers/InvoicesController.cs
+--- a/backend/src/InvoiceApp.Api/Controllers/InvoicesController.cs
++++ b/backend/src/InvoiceApp.Api/Controllers/InvoicesController.cs
+@@ -72,4 +72,3 @@ public class InvoicesController : ApiControllerBase
+     [HttpDelete("{id}")]
+-    [RequireRole("Admin")]
+     public IActionResult Delete(string id) =>
+         _repository.Remove(id) ? NoContent() : NotFound();
